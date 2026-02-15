@@ -1,4 +1,0 @@
-[   10925ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://encrypted-tbn1.gstatic.com/faviconV2?url=https://lessons.livecode.com&client=AIM&size=128&type=FAVICON&fallback_opts=TYPE,SIZE,URL:0
-[   13869ms] [ERROR] Refused to set unsafe header "origin" @ https://1.www.s81c.com/docs/static/index_bundle.js.br:182
-[   17612ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://encrypted-tbn1.gstatic.com/faviconV2?url=https://lessons.livecode.com&client=AIM&size=128&type=FAVICON&fallback_opts=TYPE,SIZE,URL:0
-[   25581ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://microsoftedge.github.io/favicon.ico:0
