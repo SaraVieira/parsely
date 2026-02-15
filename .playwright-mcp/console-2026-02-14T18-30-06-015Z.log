@@ -1,0 +1,5 @@
+[     106ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65
+[     106ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65
+[     186ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3000/manifest.webmanifest:0
+[   63748ms] [WARNING] [React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002 @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65
+[   70405ms] [WARNING] [React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002 @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65

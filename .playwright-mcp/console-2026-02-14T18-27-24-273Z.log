@@ -1,0 +1,9 @@
+[     155ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65
+[     155ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65
+[     242ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3000/manifest.webmanifest:0
+[  119875ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/src/lib/components/output-pane/index.tsx?t=1771093764094:0
+[  119876ms] [ERROR] [vite] Failed to reload /src/lib/components/output-pane/index.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65
+[  128175ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/src/lib/components/output-pane/index.tsx?t=1771093772392:0
+[  128175ms] [ERROR] [vite] Failed to reload /src/lib/pages/home/index.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65
+[  129320ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/src/lib/components/output-pane/index.tsx?t=1771093773546:0
+[  129320ms] [ERROR] [vite] Failed to reload /src/lib/pages/home/index.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3000/src/routes/__root.tsx?t=1771093344239:65

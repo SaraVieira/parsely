@@ -3,6 +3,7 @@ import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import { createRootRoute, HeadContent, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/lib/layout";
 
 const title = "Parsley";
@@ -111,9 +112,11 @@ export const Route = createRootRoute({
   component: () => (
     <>
       <HeadContent />
-      <Layout>
-        <Outlet />
-      </Layout>
+      <TooltipProvider delayDuration={300}>
+        <Layout>
+          <Outlet />
+        </Layout>
+      </TooltipProvider>
       <TanStackDevtools
         plugins={[
           {

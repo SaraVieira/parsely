@@ -1,0 +1,29 @@
+[     174ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[     174ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[     253ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3001/manifest.webmanifest:0
+[    4696ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[    4697ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[    4775ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3001/manifest.webmanifest:0
+[  129081ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[  129081ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[  129162ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3001/manifest.webmanifest:0
+[  145043ms] Uncaught Error: TextModel got disposed before DiffEditorWidget model got reset
+
+Error: TextModel got disposed before DiffEditorWidget model got reset
+    at ER.value (https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs/editor.api-CalNCsUg.js:390:50593)
+    at A._deliver (https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs/editor.api-CalNCsUg.js:7:2719)
+    at A._deliverQueue (https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs/editor.api-CalNCsUg.js:7:2810)
+    at A.fire (https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs/editor.api-CalNCsUg.js:7:3146)
+    at sl.dispose (https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs/editor.api-CalNCsUg.js:244:68898)
+    at I (http://localhost:3001/node_modules/.vite/deps/@monaco-editor_react.js?v=fba55de1:623:21)
+    at http://localhost:3001/node_modules/.vite/deps/@monaco-editor_react.js?v=fba55de1:554:162
+    at Object.react_stack_bottom_frame (http://localhost:3001/node_modules/.vite/deps/react-dom_client.js?v=fba55de1:12911:5)
+    at runWithFiberInDEV (http://localhost:3001/node_modules/.vite/deps/react-dom_client.js?v=fba55de1:854:66)
+    at commitHookEffectListUnmount (http://localhost:3001/node_modules/.vite/deps/react-dom_client.js?v=fba55de1:6645:149)
+    at <anonymous> (https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs/editor.api-CalNCsUg.js:2:11)
+[  149701ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[  149701ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[  149773ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3001/manifest.webmanifest:0
+[  221235ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[  221235ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[  221318ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3001/manifest.webmanifest:0

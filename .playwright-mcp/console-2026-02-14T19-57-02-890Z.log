@@ -1,0 +1,6 @@
+[     174ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[     174ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[     262ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3001/manifest.webmanifest:0
+[  489357ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerEnterCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[  489357ms] [ERROR] Unknown event handler property `%s`. It will be ignored. onPointerLeaveCapture @ http://localhost:3001/src/routes/__root.tsx:65
+[  489437ms] [ERROR] Manifest: Line: 1, column: 1, Syntax error. @ http://localhost:3001/manifest.webmanifest:0

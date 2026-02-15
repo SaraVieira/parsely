@@ -11,7 +11,7 @@ export function ThemeToggle() {
       toggle={(light) => setTheme(light ? 'light' : 'dark')}
       toggled={theme === 'light'}
       placeholder=""
-      className="text-3xl"
+      className="text-lg"
       onPointerEnterCapture={undefined}
       onPointerLeaveCapture={undefined}
     />

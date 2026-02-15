@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 
 import { ThemeProvider } from '@/lib/components/theme-provider';
 
-import { Footer } from './components/footer';
 import { Header } from './components/header';
 
 type LayoutProps = {
@@ -12,11 +11,9 @@ type LayoutProps = {
 export const Layout = ({ children }: LayoutProps) => {
   return (
     <ThemeProvider>
-      {/* <Meta /> */}
-      <div className="flex min-h-screen flex-col dark:bg-black dark:text-white">
+      <div className="flex h-screen flex-col dark:bg-black dark:text-white">
         <Header />
-        <main className="wrapper">{children}</main>
-        <Footer />
+        <main className="flex-1 overflow-hidden">{children}</main>
       </div>
     </ThemeProvider>
   );
