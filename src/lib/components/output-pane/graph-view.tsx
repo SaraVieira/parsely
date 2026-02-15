@@ -61,6 +61,7 @@ function EditableValue({ value, className, path }: { value: string; className: s
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={() => { onEditValue(path, editValue); setEditing(false); }}
         onKeyDown={(e) => {
+          e.stopPropagation();
           if (e.key === "Enter") { onEditValue(path, editValue); setEditing(false); }
           if (e.key === "Escape") setEditing(false);
         }}
@@ -151,6 +152,7 @@ function EditableKey({ keyName, path }: { keyName: string; path: string }) {
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleCommit}
         onKeyDown={(e) => {
+          e.stopPropagation();
           if (e.key === "Enter") handleCommit();
           if (e.key === "Escape") setEditing(false);
         }}
@@ -221,6 +223,7 @@ function EditableLabel({ label, isRoot }: { label: string; isRoot: boolean }) {
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={() => { if (editValue.trim()) onRenameRoot(editValue.trim()); setEditing(false); }}
         onKeyDown={(e) => {
+          e.stopPropagation();
           if (e.key === "Enter") { if (editValue.trim()) onRenameRoot(editValue.trim()); setEditing(false); }
           if (e.key === "Escape") setEditing(false);
         }}
@@ -232,7 +235,7 @@ function EditableLabel({ label, isRoot }: { label: string; isRoot: boolean }) {
   }
 
   return (
-    <span className="cursor-text nodrag" onDoubleClick={(e) => { e.stopPropagation(); setEditValue(label); setEditing(true); }}>
+    <span className="block w-full cursor-text nodrag" onDoubleClick={(e) => { e.stopPropagation(); setEditValue(label); setEditing(true); }}>
       {label}
     </span>
   );
@@ -248,7 +251,9 @@ function ObjectNode({ id, data }: NodeProps<Node<{ label: string; entries?: Entr
     <div className={`min-w-[200px] max-w-[320px] rounded-lg border border-border/60 bg-card shadow-md dark:border-white/10 dark:bg-zinc-900 ${dimClass} ${ringClass}`}>
       <Handle type="target" position={Position.Left} className="!size-1.5 !bg-primary/40 !cursor-default" />
       <div className="flex items-center rounded-t-lg border-b border-border/60 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary dark:border-white/10 dark:bg-primary/20">
-        <EditableLabel label={data.label} isRoot={isRoot} />
+        <div className="flex-1 min-w-0">
+          <EditableLabel label={data.label} isRoot={isRoot} />
+        </div>
         <div className="ml-auto flex items-center gap-0.5">
           {data.jsonPath && data.jsonPath !== "$" && (
             <button
@@ -309,11 +314,14 @@ function ArrayNode({ id, data }: NodeProps<Node<{ label: string; itemCount?: num
   const { onDelete, onAdd } = useContext(GraphContext);
   const dimClass = highlighted === false ? "opacity-30" : "";
   const ringClass = highlighted === true ? "ring-2 ring-primary" : "";
+  const isRoot = data.jsonPath === "$";
   return (
     <div className={`min-w-[150px] rounded-lg border border-border/60 bg-card shadow-md dark:border-white/10 dark:bg-zinc-900 ${dimClass} ${ringClass}`}>
       <Handle type="target" position={Position.Left} className="!size-1.5 !bg-primary/40 !cursor-default" />
       <div className="flex items-center rounded-t-lg border-b border-border/60 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-600 dark:border-white/10 dark:bg-teal-500/20 dark:text-teal-400">
-        <span>{data.label}</span>
+        <div className="flex-1 min-w-0">
+          <EditableLabel label={data.label} isRoot={isRoot} />
+        </div>
         <div className="ml-auto flex items-center gap-0.5">
           {data.jsonPath && data.jsonPath !== "$" && (
             <button

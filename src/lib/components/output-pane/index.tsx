@@ -28,7 +28,9 @@ export function OutputPane() {
   return (
     <Tabs
       value={viewMode}
-      onValueChange={(v) => setViewMode(v as "graph" | "text" | "types" | "diff" | "table")}
+      onValueChange={(v) =>
+        setViewMode(v as "graph" | "text" | "types" | "diff" | "table")
+      }
       className="flex h-full flex-col"
     >
       <div className="flex items-center justify-between border-b px-2">

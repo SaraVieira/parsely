@@ -1,7 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { executeTransformCode } from "@/lib/utils/json-executor";
-import { setValueAtPath, deleteAtPath, renameKeyAtPath, addAtPath, bulkRenameKey } from "@/lib/utils/json-path";
+import {
+  executeTransformCode,
+  type ConsoleEntry,
+} from "@/lib/utils/json-executor";
+import {
+  setValueAtPath,
+  deleteAtPath,
+  renameKeyAtPath,
+  addAtPath,
+  bulkRenameKey,
+} from "@/lib/utils/json-path";
 
 const SAMPLE_JSON = JSON.stringify(
   {
@@ -24,7 +33,7 @@ const SAMPLE_JSON = JSON.stringify(
 const SAMPLE_TRANSFORM = `// 'data' is your parsed JSON, '_' is lodash
 // Return the transformed result
 
-return _.filter(data.users, u => u.age > 27)`;
+return _.filter(data.users, u => u.role > "user")`;
 
 type ViewMode = "graph" | "text" | "types" | "diff" | "table";
 
@@ -43,6 +52,8 @@ type ParsleyState = {
   viewMode: ViewMode;
   history: HistoryEntry[];
   rootName: string;
+  consoleLogs: ConsoleEntry[];
+  autoRun: boolean;
 };
 
 type ParsleyActions = {
@@ -58,6 +69,8 @@ type ParsleyActions = {
   addAtPath: (path: string, key: string, value: unknown) => void;
   bulkRenameKey: (oldKey: string, newKey: string) => void;
   setRootName: (name: string) => void;
+  clearConsoleLogs: () => void;
+  setAutoRun: (autoRun: boolean) => void;
 };
 
 export type ParsleyStore = ParsleyState & ParsleyActions;
@@ -90,80 +103,6 @@ if (typeof window !== "undefined") {
 export const useParsleyStore = create<ParsleyStore>()(
   persist(
     (set, get) => ({
-  jsonInput: SAMPLE_JSON,
-  parsedJson: initialParsedJson,
-  jsonError: null,
-  transformCode: SAMPLE_TRANSFORM,
-  transformError: null,
-  transformedJson: initialParsedJson,
-  viewMode: "graph",
-  history: [],
-  rootName: "Root",
-
-  setJsonInput: (input: string) => {
-    try {
-      const parsed = JSON.parse(input);
-      set({
-        jsonInput: input,
-        parsedJson: parsed,
-        jsonError: null,
-        transformedJson: parsed,
-        transformError: null,
-      });
-    } catch (e) {
-      set({
-        jsonInput: input,
-        jsonError: e instanceof Error ? e.message : "Invalid JSON",
-      });
-    }
-  },
-
-  setTransformCode: (code: string) => {
-    set({ transformCode: code });
-  },
-
-  executeTransform: () => {
-    const { parsedJson, transformCode, transformedJson, jsonError } = get();
-    if (jsonError) return;
-
-    const { result, error } = executeTransformCode(transformCode, parsedJson);
-
-    if (error) {
-      set({ transformError: error });
-    } else {
-      set((state) => ({
-        transformedJson: result,
-        transformError: null,
-        history: [
-          ...state.history,
-          {
-            transformedJson: transformedJson,
-            transformCode: state.transformCode,
-          },
-        ],
-      }));
-    }
-  },
-
-  setViewMode: (mode: ViewMode) => {
-    set({ viewMode: mode });
-  },
-
-  revert: () => {
-    const { history } = get();
-    if (history.length === 0) return;
-
-    const previous = history[history.length - 1];
-    set({
-      transformedJson: previous.transformedJson,
-      transformCode: previous.transformCode,
-      transformError: null,
-      history: history.slice(0, -1),
-    });
-  },
-
-  reset: () => {
-    set({
       jsonInput: SAMPLE_JSON,
       parsedJson: initialParsedJson,
       jsonError: null,
@@ -173,83 +112,174 @@ export const useParsleyStore = create<ParsleyStore>()(
       viewMode: "graph",
       history: [],
       rootName: "Root",
-    });
-  },
+      consoleLogs: [],
+      autoRun: false,
 
-  updateValueAtPath: (path: string, value: unknown) => {
-    const { parsedJson } = get();
-    const updated = setValueAtPath(parsedJson, path, value);
-    const newInput = JSON.stringify(updated, null, 2);
-    set({
-      jsonInput: newInput,
-      parsedJson: updated,
-      jsonError: null,
-      transformedJson: updated,
-      transformError: null,
-    });
-  },
+      setJsonInput: (input: string) => {
+        try {
+          const parsed = JSON.parse(input);
+          set({
+            jsonInput: input,
+            parsedJson: parsed,
+            jsonError: null,
+            transformedJson: parsed,
+            transformError: null,
+          });
+        } catch (e) {
+          set({
+            jsonInput: input,
+            jsonError: e instanceof Error ? e.message : "Invalid JSON",
+          });
+        }
+      },
 
-  deleteAtPath: (path: string) => {
-    const { parsedJson } = get();
-    const updated = deleteAtPath(parsedJson, path);
-    const newInput = JSON.stringify(updated, null, 2);
-    set({
-      jsonInput: newInput,
-      parsedJson: updated,
-      jsonError: null,
-      transformedJson: updated,
-      transformError: null,
-    });
-  },
+      setTransformCode: (code: string) => {
+        set({ transformCode: code });
+      },
 
-  renameKeyAtPath: (path: string, newKey: string) => {
-    const { parsedJson } = get();
-    const updated = renameKeyAtPath(parsedJson, path, newKey);
-    const newInput = JSON.stringify(updated, null, 2);
-    set({
-      jsonInput: newInput,
-      parsedJson: updated,
-      jsonError: null,
-      transformedJson: updated,
-      transformError: null,
-    });
-  },
+      executeTransform: () => {
+        const { parsedJson, transformCode, transformedJson, jsonError } = get();
+        if (jsonError) return;
 
-  addAtPath: (path: string, key: string, value: unknown) => {
-    const { parsedJson } = get();
-    const updated = addAtPath(parsedJson, path, key, value);
-    const newInput = JSON.stringify(updated, null, 2);
-    set({
-      jsonInput: newInput,
-      parsedJson: updated,
-      jsonError: null,
-      transformedJson: updated,
-      transformError: null,
-    });
-  },
+        const { result, error, logs } = executeTransformCode(
+          transformCode,
+          parsedJson,
+        );
 
-  bulkRenameKey: (oldKey: string, newKey: string) => {
-    const { parsedJson } = get();
-    const updated = bulkRenameKey(parsedJson, oldKey, newKey);
-    const newInput = JSON.stringify(updated, null, 2);
-    set({
-      jsonInput: newInput,
-      parsedJson: updated,
-      jsonError: null,
-      transformedJson: updated,
-      transformError: null,
-    });
-  },
+        if (error) {
+          set({ transformError: error, consoleLogs: logs });
+        } else {
+          set((state) => ({
+            transformedJson: result,
+            transformError: null,
+            consoleLogs: logs,
+            history: [
+              ...state.history,
+              {
+                transformedJson: transformedJson,
+                transformCode: state.transformCode,
+              },
+            ],
+          }));
+        }
+      },
 
-  setRootName: (name: string) => {
-    set({ rootName: name });
-  },
-}),
+      setViewMode: (mode: ViewMode) => {
+        set({ viewMode: mode });
+      },
+
+      revert: () => {
+        const { history } = get();
+        if (history.length === 0) return;
+
+        const previous = history[history.length - 1];
+        set({
+          transformedJson: previous.transformedJson,
+          transformCode: previous.transformCode,
+          transformError: null,
+          history: history.slice(0, -1),
+        });
+      },
+
+      reset: () => {
+        set({
+          jsonInput: SAMPLE_JSON,
+          parsedJson: initialParsedJson,
+          jsonError: null,
+          transformCode: SAMPLE_TRANSFORM,
+          transformError: null,
+          transformedJson: initialParsedJson,
+          viewMode: "graph",
+          history: [],
+          rootName: "Root",
+          consoleLogs: [],
+          autoRun: false,
+        });
+      },
+
+      updateValueAtPath: (path: string, value: unknown) => {
+        const { parsedJson } = get();
+        const updated = setValueAtPath(parsedJson, path, value);
+        const newInput = JSON.stringify(updated, null, 2);
+        set({
+          jsonInput: newInput,
+          parsedJson: updated,
+          jsonError: null,
+          transformedJson: updated,
+          transformError: null,
+        });
+      },
+
+      deleteAtPath: (path: string) => {
+        const { parsedJson } = get();
+        const updated = deleteAtPath(parsedJson, path);
+        const newInput = JSON.stringify(updated, null, 2);
+        set({
+          jsonInput: newInput,
+          parsedJson: updated,
+          jsonError: null,
+          transformedJson: updated,
+          transformError: null,
+        });
+      },
+
+      renameKeyAtPath: (path: string, newKey: string) => {
+        const { parsedJson } = get();
+        const updated = renameKeyAtPath(parsedJson, path, newKey);
+        const newInput = JSON.stringify(updated, null, 2);
+        set({
+          jsonInput: newInput,
+          parsedJson: updated,
+          jsonError: null,
+          transformedJson: updated,
+          transformError: null,
+        });
+      },
+
+      addAtPath: (path: string, key: string, value: unknown) => {
+        const { parsedJson } = get();
+        const updated = addAtPath(parsedJson, path, key, value);
+        const newInput = JSON.stringify(updated, null, 2);
+        set({
+          jsonInput: newInput,
+          parsedJson: updated,
+          jsonError: null,
+          transformedJson: updated,
+          transformError: null,
+        });
+      },
+
+      bulkRenameKey: (oldKey: string, newKey: string) => {
+        const { parsedJson } = get();
+        const updated = bulkRenameKey(parsedJson, oldKey, newKey);
+        const newInput = JSON.stringify(updated, null, 2);
+        set({
+          jsonInput: newInput,
+          parsedJson: updated,
+          jsonError: null,
+          transformedJson: updated,
+          transformError: null,
+        });
+      },
+
+      setRootName: (name: string) => {
+        set({ rootName: name });
+      },
+
+      clearConsoleLogs: () => {
+        set({ consoleLogs: [] });
+      },
+
+      setAutoRun: (autoRun: boolean) => {
+        set({ autoRun });
+      },
+    }),
     {
       name: "parsley-store",
       partialize: (state) => ({
         jsonInput: state.jsonInput,
         transformCode: state.transformCode,
+        rootName: state.rootName,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

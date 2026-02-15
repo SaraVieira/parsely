@@ -1,6 +1,26 @@
-import { useCallback, useEffect, useState, useRef, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+  type DragEvent,
+} from "react";
 import Editor, { type Monaco } from "@monaco-editor/react";
-import { Play, RotateCcw, RotateCw, WrapText, AlignLeft, ChevronDown, Share2, Check, TreePine, Code } from "lucide-react";
+import {
+  Play,
+  RotateCcw,
+  RotateCw,
+  WrapText,
+  AlignLeft,
+  ChevronDown,
+  Share2,
+  Check,
+  TreePine,
+  Code,
+  Zap,
+  Trash2,
+  ChevronUp,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,25 +30,107 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const TRANSFORM_PRESETS = [
-  { label: "Filter", code: "// Filter items by condition\nreturn _.filter(data, item => item.age > 25)" },
-  { label: "Map", code: "// Transform each item\nreturn _.map(data, item => ({\n  ...item,\n  name: item.name.toUpperCase()\n}))" },
-  { label: "Pick keys", code: "// Keep only specific keys\nreturn _.map(data, item => _.pick(item, ['name', 'id']))" },
-  { label: "Omit keys", code: "// Remove specific keys\nreturn _.map(data, item => _.omit(item, ['bio', 'version']))" },
-  { label: "Sort by", code: "// Sort by a key\nreturn _.sortBy(data, 'name')" },
-  { label: "Group by", code: "// Group items by a key\nreturn _.groupBy(data, 'language')" },
-  { label: "Unique by", code: "// Get unique items by a key\nreturn _.uniqBy(data, 'language')" },
-  { label: "Flatten", code: "// Flatten nested arrays\nreturn _.flatMap(data, item => item.tags || item)" },
-  { label: "Count by", code: "// Count occurrences by key\nreturn _.countBy(data, 'language')" },
-  { label: "First N", code: "// Take first N items\nreturn _.take(data, 5)" },
-  { label: "Pluck", code: "// Extract a single field\nreturn _.map(data, 'name')" },
-  { label: "Key by", code: "// Index items by a key\nreturn _.keyBy(data, 'id')" },
-];
 import { useParsleyStore } from "@/lib/stores/parsley-store";
 import { useResolvedTheme } from "@/lib/hooks/use-resolved-theme";
 import { EditorLoading } from "@/lib/components/editor-loading";
 import { JsonTreeView } from "@/lib/components/json-tree-view";
 import { registerTransformCompletions } from "@/lib/utils/transform-snippets";
+import { TRANSFORM_PRESETS } from "../utils/constants";
+
+function formatLogArg(arg: unknown): string {
+  if (arg === null) return "null";
+  if (arg === undefined) return "undefined";
+  if (typeof arg === "string") return arg;
+  if (typeof arg === "object") {
+    try {
+      return JSON.stringify(arg, null, 2);
+    } catch {
+      return String(arg);
+    }
+  }
+  return String(arg);
+}
+
+function ConsolePanel() {
+  const consoleLogs = useParsleyStore((s) => s.consoleLogs);
+  const clearConsoleLogs = useParsleyStore((s) => s.clearConsoleLogs);
+  const [collapsed, setCollapsed] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [consoleLogs]);
+
+  const levelColors: Record<string, string> = {
+    log: "text-foreground",
+    info: "text-blue-500 dark:text-blue-400",
+    warn: "text-amber-500 dark:text-amber-400",
+    error: "text-red-500 dark:text-red-400",
+  };
+
+  const levelPrefixes: Record<string, string> = {
+    log: "",
+    info: "ℹ ",
+    warn: "⚠ ",
+    error: "✗ ",
+  };
+
+  return (
+    <div
+      className={`border-t border-border/60 flex flex-col ${collapsed ? "" : "min-h-[100px] max-h-[200px]"}`}
+    >
+      <div className="flex items-center justify-between bg-muted/30 px-2 py-0.5">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ChevronUp
+            className={`size-3 transition-transform ${collapsed ? "rotate-180" : ""}`}
+          />
+          Console
+          {consoleLogs.length > 0 && (
+            <span className="rounded-full bg-muted px-1.5 text-[9px]">
+              {consoleLogs.length}
+            </span>
+          )}
+        </button>
+        {!collapsed && consoleLogs.length > 0 && (
+          <button
+            onClick={clearConsoleLogs}
+            className="text-muted-foreground hover:text-foreground"
+            title="Clear console"
+          >
+            <Trash2 className="size-3" />
+          </button>
+        )}
+      </div>
+      {!collapsed && (
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-auto px-2 py-1 font-mono text-xs"
+        >
+          {consoleLogs.length === 0 ? (
+            <div className="py-2 text-center text-[10px] text-muted-foreground">
+              Use console.log() in your transform to see output here
+            </div>
+          ) : (
+            consoleLogs.map((entry, i) => (
+              <div
+                key={i}
+                className={`py-0.5 whitespace-pre-wrap break-all ${levelColors[entry.level] ?? ""}`}
+              >
+                <span className="opacity-50">{levelPrefixes[entry.level]}</span>
+                {entry.args.map(formatLogArg).join(" ")}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function EditorPane() {
   const {
@@ -42,6 +144,8 @@ export function EditorPane() {
     revert,
     reset,
     history,
+    autoRun,
+    setAutoRun,
   } = useParsleyStore();
 
   const resolvedTheme = useResolvedTheme();
@@ -53,17 +157,35 @@ export function EditorPane() {
   const parsedJson = useParsleyStore((s) => s.parsedJson);
   const jsonTreeError = useParsleyStore((s) => s.jsonError);
   const snippetsRegistered = useRef(false);
+  const autoRunTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleTransformEditorMount = useCallback((_editor: unknown, monaco: Monaco) => {
-    if (!snippetsRegistered.current) {
-      registerTransformCompletions(monaco);
-      snippetsRegistered.current = true;
-    }
-  }, []);
+  const handleTransformEditorMount = useCallback(
+    (_editor: unknown, monaco: Monaco) => {
+      if (!snippetsRegistered.current) {
+        registerTransformCompletions(monaco);
+        snippetsRegistered.current = true;
+      }
+    },
+    [],
+  );
 
   const handleRun = useCallback(() => {
     executeTransform();
   }, [executeTransform]);
+
+  // Auto-run on transform code change
+  const handleTransformChange = useCallback(
+    (value: string | undefined) => {
+      setTransformCode(value ?? "");
+      if (autoRun) {
+        if (autoRunTimerRef.current) clearTimeout(autoRunTimerRef.current);
+        autoRunTimerRef.current = setTimeout(() => {
+          executeTransform();
+        }, 500);
+      }
+    },
+    [setTransformCode, autoRun, executeTransform],
+  );
 
   const handleShare = useCallback(() => {
     try {
@@ -141,36 +263,68 @@ export function EditorPane() {
         </TabsList>
         <div className="flex items-center gap-1">
           {activeTab === "transform" && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="xs">
-                  Presets
-                  <ChevronDown className="ml-1 size-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
-                {TRANSFORM_PRESETS.map((preset) => (
-                  <DropdownMenuItem
-                    key={preset.label}
-                    onClick={() => {
-                      setTransformCode(preset.code);
-                    }}
-                  >
-                    {preset.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="xs">
+                    Presets
+                    <ChevronDown className="ml-1 size-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="max-h-[300px] overflow-y-auto"
+                >
+                  {TRANSFORM_PRESETS.map((preset) => (
+                    <DropdownMenuItem
+                      key={preset.label}
+                      onClick={() => {
+                        setTransformCode(preset.code);
+                      }}
+                    >
+                      {preset.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant={autoRun ? "default" : "ghost"}
+                size="icon-xs"
+                onClick={() => setAutoRun(!autoRun)}
+                title={
+                  autoRun
+                    ? "Auto-run enabled (click to disable)"
+                    : "Enable auto-run on change"
+                }
+                className={
+                  autoRun
+                    ? "bg-amber-500/20 text-amber-600 hover:bg-amber-500/30 dark:text-amber-400"
+                    : ""
+                }
+              >
+                <Zap className="size-3.5" />
+              </Button>
+            </>
           )}
           {activeTab === "json" && (
             <>
               <Button
                 variant="ghost"
                 size="icon-xs"
-                onClick={() => setJsonViewMode(jsonViewMode === "editor" ? "tree" : "editor")}
-                title={jsonViewMode === "editor" ? "Switch to tree view" : "Switch to editor"}
+                onClick={() =>
+                  setJsonViewMode(jsonViewMode === "editor" ? "tree" : "editor")
+                }
+                title={
+                  jsonViewMode === "editor"
+                    ? "Switch to tree view"
+                    : "Switch to editor"
+                }
               >
-                {jsonViewMode === "editor" ? <TreePine className="size-3.5" /> : <Code className="size-3.5" />}
+                {jsonViewMode === "editor" ? (
+                  <TreePine className="size-3.5" />
+                ) : (
+                  <Code className="size-3.5" />
+                )}
               </Button>
               {jsonViewMode === "editor" && (
                 <>
@@ -179,8 +333,12 @@ export function EditorPane() {
                     size="icon-xs"
                     onClick={() => {
                       try {
-                        setJsonInput(JSON.stringify(JSON.parse(jsonInput), null, 2));
-                      } catch { /* invalid JSON, ignore */ }
+                        setJsonInput(
+                          JSON.stringify(JSON.parse(jsonInput), null, 2),
+                        );
+                      } catch {
+                        /* invalid JSON, ignore */
+                      }
                     }}
                     title="Format JSON"
                   >
@@ -192,7 +350,9 @@ export function EditorPane() {
                     onClick={() => {
                       try {
                         setJsonInput(JSON.stringify(JSON.parse(jsonInput)));
-                      } catch { /* invalid JSON, ignore */ }
+                      } catch {
+                        /* invalid JSON, ignore */
+                      }
                     }}
                     title="Minify JSON"
                   >
@@ -225,19 +385,32 @@ export function EditorPane() {
             onClick={handleShare}
             title="Copy shareable link"
           >
-            {shareCopied ? <Check className="size-3.5 text-emerald-500" /> : <Share2 className="size-3.5" />}
+            {shareCopied ? (
+              <Check className="size-3.5 text-emerald-500" />
+            ) : (
+              <Share2 className="size-3.5" />
+            )}
           </Button>
-          <Button size="xs" onClick={handleRun} title="Run transform (Cmd+Enter)">
+          <Button
+            size="xs"
+            onClick={handleRun}
+            title="Run transform (Cmd+Enter)"
+          >
             <Play className="size-3" />
             Run
           </Button>
         </div>
       </div>
 
-      <TabsContent value="json" className="relative mt-0 flex-1 overflow-hidden">
+      <TabsContent
+        value="json"
+        className="relative mt-0 flex-1 overflow-hidden"
+      >
         {isDragging && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-primary/10 border-2 border-dashed border-primary rounded-md">
-            <p className="text-sm font-medium text-primary">Drop JSON file here</p>
+            <p className="text-sm font-medium text-primary">
+              Drop JSON file here
+            </p>
           </div>
         )}
         {jsonViewMode === "tree" ? (
@@ -273,29 +446,35 @@ export function EditorPane() {
         )}
       </TabsContent>
 
-      <TabsContent value="transform" className="mt-0 flex-1 overflow-hidden">
-        <Editor
-          loading={<EditorLoading />}
-          language="javascript"
-          theme={monacoTheme}
-          value={transformCode}
-          onChange={(value) => setTransformCode(value ?? "")}
-          onMount={handleTransformEditorMount}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 13,
-            lineNumbers: "on",
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            automaticLayout: true,
-            tabSize: 2,
-          }}
-        />
+      <TabsContent
+        value="transform"
+        className="mt-0 flex-1 overflow-hidden flex flex-col"
+      >
+        <div className="flex-1 overflow-hidden">
+          <Editor
+            loading={<EditorLoading />}
+            language="javascript"
+            theme={monacoTheme}
+            value={transformCode}
+            onChange={handleTransformChange}
+            onMount={handleTransformEditorMount}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 13,
+              lineNumbers: "on",
+              scrollBeyondLastLine: false,
+              wordWrap: "on",
+              automaticLayout: true,
+              tabSize: 2,
+            }}
+          />
+        </div>
         {transformError && (
           <div className="border-t border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {transformError}
           </div>
         )}
+        <ConsolePanel />
       </TabsContent>
     </Tabs>
   );

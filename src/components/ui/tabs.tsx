@@ -75,12 +75,18 @@ function TabsTrigger({
 
 function TabsContent({
   className,
+  onKeyDown,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content>) {
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
       className={cn("flex-1 outline-none", className)}
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        onKeyDown?.(e)
+      }}
       {...props}
     />
   )
