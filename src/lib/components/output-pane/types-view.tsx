@@ -2,6 +2,7 @@ import Editor from '@monaco-editor/react';
 import { useMemo, useState } from 'react';
 
 import { EditorLoading } from '@/lib/components/editor-loading';
+import { useMonacoTheme } from '@/lib/hooks/use-monaco-theme';
 import { useParsleyStore } from '@/lib/stores/parsley-store';
 import { jsonToTypeScript } from '@/lib/utils/json-to-types';
 import { jsonToZod } from '@/lib/utils/json-to-zod';
@@ -13,7 +14,7 @@ type TypesViewProps = {
 type SchemaMode = 'typescript' | 'zod';
 
 export function TypesView({ data }: TypesViewProps) {
-  const monacoTheme = 'vs-dark';
+  const { monacoTheme, ready: themeReady } = useMonacoTheme();
   const [schemaMode, setSchemaMode] = useState<SchemaMode>('typescript');
   const rootName = useParsleyStore((s) => s.rootName);
 
@@ -52,22 +53,26 @@ export function TypesView({ data }: TypesViewProps) {
         </button>
       </div>
       <div className="flex-1 overflow-hidden">
-        <Editor
-          loading={<EditorLoading />}
-          language="typescript"
-          theme={monacoTheme}
-          value={types}
-          options={{
-            readOnly: true,
-            minimap: { enabled: false },
-            fontSize: 13,
-            lineNumbers: 'on',
-            scrollBeyondLastLine: false,
-            wordWrap: 'on',
-            automaticLayout: true,
-            tabSize: 2,
-          }}
-        />
+        {!themeReady ? (
+          <EditorLoading />
+        ) : (
+          <Editor
+            loading={<EditorLoading />}
+            language="typescript"
+            theme={monacoTheme}
+            value={types}
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              fontSize: 13,
+              lineNumbers: 'on',
+              scrollBeyondLastLine: false,
+              wordWrap: 'on',
+              automaticLayout: true,
+              tabSize: 2,
+            }}
+          />
+        )}
       </div>
     </div>
   );

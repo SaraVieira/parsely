@@ -13,6 +13,7 @@ import {
   renameKeyAtPath,
   setValueAtPath,
 } from '@/lib/utils/json-path';
+import { DEFAULT_MONACO_THEME } from '@/lib/utils/monaco-themes';
 import { hydrateFromShareUrl } from '@/lib/utils/share-url';
 
 const SAMPLE_JSON = JSON.stringify(
@@ -60,6 +61,7 @@ type ParsleyState = {
   rootName: string;
   consoleLogs: Array<ConsoleEntry>;
   autoRun: boolean;
+  monacoTheme: string;
 };
 
 type ParsleyActions = {
@@ -79,6 +81,7 @@ type ParsleyActions = {
   setRootName: (name: string) => void;
   clearConsoleLogs: () => void;
   setAutoRun: (autoRun: boolean) => void;
+  setMonacoTheme: (theme: string) => void;
 };
 
 export type ParsleyStore = ParsleyState & ParsleyActions;
@@ -118,6 +121,7 @@ export const useParsleyStore = create<ParsleyStore>()(
         rootName: 'Root',
         consoleLogs: [],
         autoRun: false,
+        monacoTheme: DEFAULT_MONACO_THEME,
 
         setJsonInput: (input: string) => {
           try {
@@ -207,6 +211,7 @@ export const useParsleyStore = create<ParsleyStore>()(
             rootName: 'Root',
             consoleLogs: [],
             autoRun: false,
+            monacoTheme: DEFAULT_MONACO_THEME,
           });
         },
 
@@ -239,6 +244,10 @@ export const useParsleyStore = create<ParsleyStore>()(
         setAutoRun: (autoRun: boolean) => {
           set({ autoRun });
         },
+
+        setMonacoTheme: (theme: string) => {
+          set({ monacoTheme: theme });
+        },
       };
     },
     {
@@ -247,6 +256,7 @@ export const useParsleyStore = create<ParsleyStore>()(
         jsonInput: state.jsonInput,
         transformCode: state.transformCode,
         rootName: state.rootName,
+        monacoTheme: state.monacoTheme,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) {

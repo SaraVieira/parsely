@@ -2,13 +2,14 @@ import Editor from '@monaco-editor/react';
 import { useMemo } from 'react';
 
 import { EditorLoading } from '@/lib/components/editor-loading';
+import { useMonacoTheme } from '@/lib/hooks/use-monaco-theme';
 
 type TextViewProps = {
   data: unknown;
 };
 
 export function TextView({ data }: TextViewProps) {
-  const monacoTheme = 'vs-dark';
+  const { monacoTheme, ready: themeReady } = useMonacoTheme();
 
   const text = useMemo(() => {
     try {
@@ -17,6 +18,10 @@ export function TextView({ data }: TextViewProps) {
       return String(data);
     }
   }, [data]);
+
+  if (!themeReady) {
+    return <EditorLoading />;
+  }
 
   return (
     <Editor

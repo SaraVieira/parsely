@@ -3,6 +3,7 @@ import { type DragEvent, useCallback, useRef, useState } from 'react';
 
 import { ConsolePanel } from '@/lib/components/console-panel';
 import { EditorLoading } from '@/lib/components/editor-loading';
+import { useMonacoTheme } from '@/lib/hooks/use-monaco-theme';
 import { useParsleyStore } from '@/lib/stores/parsley-store';
 import { registerTransformCompletions } from '@/lib/utils/snippets/register-completions';
 
@@ -18,8 +19,7 @@ export function EditorPane() {
     editorTab,
     autoRun,
   } = useParsleyStore();
-
-  const monacoTheme = 'vs-dark';
+  const { monacoTheme, ready: themeReady } = useMonacoTheme();
   const [isDragging, setIsDragging] = useState(false);
   const snippetsRegistered = useRef(false);
   const autoRunTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,6 +84,14 @@ export function EditorPane() {
     };
     reader.readAsText(file);
   };
+
+  if (!themeReady) {
+    return (
+      <div className="flex h-full flex-col">
+        <EditorLoading />
+      </div>
+    );
+  }
 
   return (
     <div

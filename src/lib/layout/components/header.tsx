@@ -19,12 +19,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PostgresImportDialog } from '@/lib/components/postgres-import-dialog';
+import { ThemePicker } from '@/lib/layout/components/theme-picker';
 import { useParsleyStore } from '@/lib/stores/parsley-store';
 import { jsonToCsv } from '@/lib/utils/json-to-csv';
 import { jsonToTypeScript } from '@/lib/utils/json-to-types';
 
 export const Header = () => {
-  const { transformedJson, viewMode, setJsonInput } = useParsleyStore();
+  const {
+    transformedJson,
+    viewMode,
+    setJsonInput,
+    monacoTheme,
+    setMonacoTheme,
+  } = useParsleyStore();
   const [copied, setCopied] = useState(false);
   const [pgDialogOpen, setPgDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -149,6 +156,11 @@ export const Header = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <ThemePicker
+              monacoTheme={monacoTheme}
+              setMonacoTheme={setMonacoTheme}
+            />
           </div>
         </div>
         <div className="flex items-center gap-1">
