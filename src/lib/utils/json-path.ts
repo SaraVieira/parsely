@@ -213,35 +213,54 @@ function buildPath(segments: Array<string>): string {
   return path;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: path parser with bracket/dot notation
+function stripQuotes(key: string): string {
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    return key.slice(1, -1);
+  }
+  return key;
+}
+
+function parseBracketSegment(p: string): { key: string; rest: string } | null {
+  const bracketEnd = p.indexOf(']');
+  if (bracketEnd === -1) {
+    return null;
+  }
+  return {
+    key: stripQuotes(p.slice(1, bracketEnd)),
+    rest: p.slice(bracketEnd + 1),
+  };
+}
+
+function parseDotSegment(p: string): { key: string; rest: string } | null {
+  const match = p.match(IDENTIFIER_RE);
+  if (!match) {
+    return null;
+  }
+  return { key: match[0], rest: p.slice(match[0].length) };
+}
+
 function parsePath(path: string): Array<string> {
-  // Remove leading $
   let p = path.startsWith('$') ? path.slice(1) : path;
   const segments: Array<string> = [];
 
   while (p.length > 0) {
     if (p[0] === '.') {
-      p = p.slice(1);
-      const match = p.match(IDENTIFIER_RE);
-      if (match) {
-        segments.push(match[0]);
-        p = p.slice(match[0].length);
-      }
-    } else if (p[0] === '[') {
-      const bracketEnd = p.indexOf(']');
-      if (bracketEnd === -1) {
+      const result = parseDotSegment(p.slice(1));
+      if (!result) {
         break;
       }
-      let key = p.slice(1, bracketEnd);
-      // Remove quotes if present
-      if (
-        (key.startsWith('"') && key.endsWith('"')) ||
-        (key.startsWith("'") && key.endsWith("'"))
-      ) {
-        key = key.slice(1, -1);
+      segments.push(result.key);
+      p = result.rest;
+    } else if (p[0] === '[') {
+      const result = parseBracketSegment(p);
+      if (!result) {
+        break;
       }
-      segments.push(key);
-      p = p.slice(bracketEnd + 1);
+      segments.push(result.key);
+      p = result.rest;
     } else {
       break;
     }

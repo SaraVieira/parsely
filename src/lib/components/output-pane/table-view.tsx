@@ -23,50 +23,50 @@ type ArrayPath = {
   length: number;
 };
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: recursive tree traversal
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function pathLabel(path: string): string {
+  return path === '$' ? 'root' : path.replace(PATH_PREFIX_RE, '');
+}
+
+function findNestedArraysInItem(
+  obj: Record<string, unknown>,
+  path: string,
+  results: Array<ArrayPath>,
+): void {
+  const prefix = path === '$' ? '' : `${pathLabel(path)}.`;
+  for (const [key, value] of Object.entries(obj)) {
+    if (!Array.isArray(value)) {
+      continue;
+    }
+    const hasObj = value.some((v) => isPlainObject(v));
+    if (hasObj) {
+      results.push({
+        path: `${path}[*].${key}`,
+        label: `${prefix}[*].${key}`,
+        length: value.length,
+      });
+    }
+  }
+}
+
 function findArrayPaths(
   data: unknown,
   path: string = '$',
   results: Array<ArrayPath> = [],
 ): Array<ArrayPath> {
   if (Array.isArray(data)) {
-    const hasObjects = data.some(
-      (item) =>
-        typeof item === 'object' && item !== null && !Array.isArray(item),
-    );
+    const hasObjects = data.some((item) => isPlainObject(item));
     if (hasObjects) {
-      const label = path === '$' ? 'root' : path.replace(PATH_PREFIX_RE, '');
-      results.push({ path, label, length: data.length });
+      results.push({ path, label: pathLabel(path), length: data.length });
     }
-    // Also look inside array items for nested arrays
-    for (let i = 0; i < Math.min(data.length, 1); i++) {
-      if (
-        typeof data[i] === 'object' &&
-        data[i] !== null &&
-        !Array.isArray(data[i])
-      ) {
-        const obj = data[i] as Record<string, unknown>;
-        for (const [key, value] of Object.entries(obj)) {
-          if (Array.isArray(value)) {
-            const childPath = `${path}[*].${key}`;
-            const hasObj = value.some(
-              (v) => typeof v === 'object' && v !== null && !Array.isArray(v),
-            );
-            if (hasObj) {
-              results.push({
-                path: childPath,
-                label: `${path === '$' ? '' : `${path.replace(PATH_PREFIX_RE, '')}.`}[*].${key}`,
-                length: value.length,
-              });
-            }
-          }
-        }
-      }
+    if (data.length > 0 && isPlainObject(data[0])) {
+      findNestedArraysInItem(data[0], path, results);
     }
-  } else if (typeof data === 'object' && data !== null) {
-    for (const [key, value] of Object.entries(
-      data as Record<string, unknown>,
-    )) {
+  } else if (isPlainObject(data)) {
+    for (const [key, value] of Object.entries(data)) {
       const childPath = isSimpleKey(key)
         ? `${path}.${key}`
         : `${path}["${key}"]`;
@@ -76,69 +76,83 @@ function findArrayPaths(
   return results;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: path traversal with multiple node types
+function parseDotSegment(p: string): { key: string; rest: string } | null {
+  const match = p.match(IDENTIFIER_RE);
+  if (!match) {
+    return null;
+  }
+  return { key: match[0], rest: p.slice(match[0].length) };
+}
+
+function parseBracketSegment(p: string): { key: string; rest: string } | null {
+  const end = p.indexOf(']');
+  if (end === -1) {
+    return null;
+  }
+  let key = p.slice(1, end);
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1);
+  }
+  return { key, rest: p.slice(end + 1) };
+}
+
+function parsePathSegments(path: string): Array<string> {
+  const parts: Array<string> = [];
+  let p = path.startsWith('$') ? path.slice(1) : path;
+  while (p.length > 0) {
+    if (p[0] === '.') {
+      const result = parseDotSegment(p.slice(1));
+      if (!result) {
+        break;
+      }
+      parts.push(result.key);
+      p = result.rest;
+    } else if (p[0] === '[') {
+      const result = parseBracketSegment(p);
+      if (!result) {
+        break;
+      }
+      parts.push(result.key);
+      p = result.rest;
+    } else {
+      break;
+    }
+  }
+  return parts;
+}
+
+function resolveArrayPart(current: Array<unknown>, part: string): unknown {
+  const idx = Number(part);
+  if (!Number.isNaN(idx)) {
+    return current[idx];
+  }
+  return current.flatMap((item) => {
+    if (isPlainObject(item)) {
+      return item[part] ?? [];
+    }
+    return [];
+  });
+}
+
 function getValueAtPath(data: unknown, path: string): unknown {
   if (path === '$') {
     return data;
   }
 
-  const parts: Array<string> = [];
-  let p = path.startsWith('$') ? path.slice(1) : path;
-  while (p.length > 0) {
-    if (p[0] === '.') {
-      p = p.slice(1);
-      const match = p.match(IDENTIFIER_RE);
-      if (match) {
-        parts.push(match[0]);
-        p = p.slice(match[0].length);
-      }
-    } else if (p[0] === '[') {
-      const end = p.indexOf(']');
-      if (end === -1) {
-        break;
-      }
-      let key = p.slice(1, end);
-      if (
-        (key.startsWith('"') && key.endsWith('"')) ||
-        (key.startsWith("'") && key.endsWith("'"))
-      ) {
-        key = key.slice(1, -1);
-      }
-      if (key === '*') {
-        parts.push('*');
-      } else {
-        parts.push(key);
-      }
-      p = p.slice(end + 1);
-    } else {
-      break;
-    }
-  }
-
+  const parts = parsePathSegments(path);
   let current: unknown = data;
   for (const part of parts) {
     if (current === null || current === undefined) {
       return undefined;
     }
-    if (part === '*') {
-      // Flatten: collect from all array items
-      if (Array.isArray(current)) {
-        continue; // skip, next part will collect from items
-      }
+    if (part === '*' && Array.isArray(current)) {
+      continue;
     }
     if (Array.isArray(current)) {
-      const idx = Number(part);
-      if (!Number.isNaN(idx)) {
-        current = current[idx];
-      } else {
-        // Collect property from all array items
-        current = current.flatMap((item) => {
-          if (typeof item === 'object' && item !== null) {
-            return (item as Record<string, unknown>)[part] ?? [];
-          }
-          return [];
-        });
-      }
+      current = resolveArrayPart(current, part);
     } else if (typeof current === 'object') {
       current = (current as Record<string, unknown>)[part];
     } else {
