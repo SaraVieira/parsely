@@ -5,6 +5,7 @@ import {
   Database,
   Download,
   FileText,
+  Globe,
   Leaf,
   Sheet,
   Upload,
@@ -19,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { FetchUrlDialog } from '@/lib/components/fetch-url-dialog';
 import { PostgresImportDialog } from '@/lib/components/postgres-import-dialog';
 import { ThemePicker } from '@/lib/layout/components/theme-picker';
 import { useParsleyStore } from '@/lib/stores/parsley-store';
@@ -36,6 +38,7 @@ export const Header = () => {
   } = useParsleyStore();
   const [copied, setCopied] = useState(false);
   const [pgDialogOpen, setPgDialogOpen] = useState(false);
+  const [urlDialogOpen, setUrlDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCopy = () => {
@@ -121,6 +124,10 @@ export const Header = () => {
                   <Database className="mr-2 size-3.5" />
                   Import PostgreSQL
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setUrlDialogOpen(true)}>
+                  <Globe className="mr-2 size-3.5" />
+                  Fetch from URL
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleExportJson}>
                   <Download className="mr-2 size-3.5" />
@@ -171,6 +178,8 @@ export const Header = () => {
         open={pgDialogOpen}
         onOpenChange={setPgDialogOpen}
       />
+
+      <FetchUrlDialog open={urlDialogOpen} onOpenChange={setUrlDialogOpen} />
     </>
   );
 };

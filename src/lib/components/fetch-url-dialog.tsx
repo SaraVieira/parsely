@@ -1,53 +1,53 @@
-import { Globe, Loader2, Minus, Plus, Terminal } from 'lucide-react';
-import { useState } from 'react';
+import { Globe, Loader2, Minus, Plus, Terminal } from "lucide-react";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   fetchFromUrl,
   type HeaderEntry,
   parseCurlCommand,
-} from '@/lib/server/fetch-url';
-import { useParsleyStore } from '@/lib/stores/parsley-store';
+} from "@/lib/server/fetch-url";
+import { useParsleyStore } from "@/lib/stores/parsley-store";
 
 type FetchUrlDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
+const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 
 export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
   const { setJsonInput } = useParsleyStore();
 
-  const [url, setUrl] = useState('');
-  const [method, setMethod] = useState<string>('GET');
+  const [url, setUrl] = useState("");
+  const [method, setMethod] = useState<string>("GET");
   const [headers, setHeaders] = useState<Array<HeaderEntry>>([]);
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const resetState = () => {
-    setUrl('');
-    setMethod('GET');
+    setUrl("");
+    setMethod("GET");
     setHeaders([]);
-    setBody('');
+    setBody("");
     setShowAdvanced(false);
     setLoading(false);
     setError(null);
@@ -73,7 +73,7 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
   };
 
   const addHeader = () => {
-    setHeaders((prev) => [...prev, { key: '', value: '' }]);
+    setHeaders((prev) => [...prev, { key: "", value: "" }]);
   };
 
   const removeHeader = (index: number) => {
@@ -82,7 +82,7 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
 
   const updateHeader = (
     index: number,
-    field: 'key' | 'value',
+    field: "key" | "value",
     value: string,
   ) => {
     setHeaders((prev) =>
@@ -100,14 +100,19 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
     setError(null);
 
     try {
-      const result = await fetchFromUrl({
+      const result = (await fetchFromUrl({
         data: {
           url: trimmedUrl,
           method,
           headers: headers.filter((h) => h.key.trim()),
           body,
         },
-      });
+      })) as {
+        data: unknown;
+        status: number;
+        statusText: string;
+        contentType: string;
+      };
 
       if (result.status >= 400) {
         setError(`HTTP ${result.status} ${result.statusText}`);
@@ -119,7 +124,7 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
       resetState();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to fetch from URL.',
+        err instanceof Error ? err.message : "Failed to fetch from URL.",
       );
     } finally {
       setLoading(false);
@@ -176,7 +181,7 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
                 value={url}
                 onChange={(e) => handleUrlChange(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     handleFetch();
                   }
                 }}
@@ -188,7 +193,7 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
             >
-              {showAdvanced ? 'Hide' : 'Show'} advanced options (method,
+              {showAdvanced ? "Hide" : "Show"} advanced options (method,
               headers, body)
             </button>
           </div>
@@ -214,13 +219,13 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
                   <Input
                     placeholder="Key"
                     value={header.key}
-                    onChange={(e) => updateHeader(i, 'key', e.target.value)}
+                    onChange={(e) => updateHeader(i, "key", e.target.value)}
                     className="flex-1 font-mono text-xs"
                   />
                   <Input
                     placeholder="Value"
                     value={header.value}
-                    onChange={(e) => updateHeader(i, 'value', e.target.value)}
+                    onChange={(e) => updateHeader(i, "value", e.target.value)}
                     className="flex-1 font-mono text-xs"
                   />
                   <Button
@@ -236,7 +241,7 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
           )}
 
           {/* Advanced: Body */}
-          {showAdvanced && method !== 'GET' && (
+          {showAdvanced && method !== "GET" && (
             <div className="space-y-2">
               <Label htmlFor="fetch-body" className="text-xs">
                 Body
@@ -252,10 +257,8 @@ export function FetchUrlDialog({ open, onOpenChange }: FetchUrlDialogProps) {
             </div>
           )}
 
-          {/* Error */}
           {error && <p className="text-xs text-destructive">{error}</p>}
 
-          {/* Fetch button */}
           <Button
             onClick={handleFetch}
             disabled={!url.trim() || loading}
