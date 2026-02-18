@@ -8,15 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { getValueColor } from '@/lib/utils/shared';
+import { useParsleyStore } from '@/lib/stores/parsley-store';
 import {
   compareCells,
   findArrayPaths,
-  formatCell,
   getColumns,
   getRowKey,
   getValueAtPath,
 } from '@/lib/utils/table-utils';
+
+import { EditableCell } from './editable-cell';
 
 type TableViewProps = {
   data: unknown;
@@ -26,6 +27,10 @@ type SortDir = 'asc' | 'desc';
 type SortState = { column: string; dir: SortDir } | null;
 
 export function TableView({ data }: TableViewProps) {
+  const parsedJson = useParsleyStore((s) => s.parsedJson);
+  const updateValueAtPath = useParsleyStore((s) => s.updateValueAtPath);
+  const canEdit = data === parsedJson;
+
   const arrayPaths = findArrayPaths(data);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [sort, setSort] = useState<SortState>(null);
@@ -72,17 +77,26 @@ export function TableView({ data }: TableViewProps) {
     return { rows: d, columns: cols, isTableData: true };
   })();
 
-  const sortedRows = (() => {
+  const { sortedRows, originalIndexMap } = (() => {
     if (!sort) {
-      return rows;
+      return { sortedRows: rows, originalIndexMap: null };
     }
     const { column, dir } = sort;
-    return [...rows].sort((a, b) => {
-      const va = (a as Record<string, unknown>)[column];
-      const vb = (b as Record<string, unknown>)[column];
+    const indexed = rows.map((row, idx) => ({ row, idx }));
+    indexed.sort((a, b) => {
+      const va = (a.row as Record<string, unknown>)[column];
+      const vb = (b.row as Record<string, unknown>)[column];
       const cmp = compareCells(va, vb);
       return dir === 'desc' ? -cmp : cmp;
     });
+    const map = new Map<unknown, number>();
+    for (const { row, idx } of indexed) {
+      map.set(row, idx);
+    }
+    return {
+      sortedRows: indexed.map(({ row }) => row),
+      originalIndexMap: map,
+    };
   })();
 
   const toggleSort = (col: string) => {
@@ -177,19 +191,21 @@ export function TableView({ data }: TableViewProps) {
                 >
                   {columns.map((col) => {
                     const value = (row as Record<string, unknown>)[col];
-                    const display = formatCell(value);
+                    const rowIdx = originalIndexMap?.get(row) ?? i;
+                    const base = activePath ?? '$';
+                    const cellPath = `${base}[${rowIdx}].${col}`;
                     return (
                       <td
                         key={col}
                         className="whitespace-nowrap border-r border-border/20 px-3 py-1.5 text-foreground last:border-r-0"
                       >
-                        <span
-                          className={getValueColor(
-                            value === null ? 'null' : typeof value,
-                          )}
-                        >
-                          {display}
-                        </span>
+                        <EditableCell
+                          value={value}
+                          editable={canEdit && !sort}
+                          onSave={(newValue) =>
+                            updateValueAtPath(cellPath, newValue)
+                          }
+                        />
                       </td>
                     );
                   })}

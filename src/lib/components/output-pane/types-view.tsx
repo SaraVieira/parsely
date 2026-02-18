@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { EditorLoading } from '@/lib/components/editor-loading';
 import { useMonacoTheme } from '@/lib/hooks/use-monaco-theme';
 import { useParsleyStore } from '@/lib/stores/parsley-store';
+import { jsonToJsonSchema } from '@/lib/utils/json-to-json-schema';
 import { jsonToTypeScript } from '@/lib/utils/json-to-types';
 import { jsonToZod } from '@/lib/utils/json-to-zod';
 
@@ -13,7 +14,7 @@ type TypesViewProps = {
   data: unknown;
 };
 
-type SchemaMode = 'typescript' | 'zod';
+type SchemaMode = 'typescript' | 'zod' | 'json-schema';
 
 export function TypesView({ data }: TypesViewProps) {
   const { monacoTheme, ready: themeReady } = useMonacoTheme();
@@ -22,9 +23,13 @@ export function TypesView({ data }: TypesViewProps) {
   const rootName = useParsleyStore((s) => s.rootName);
 
   const types =
-    schemaMode === 'zod'
-      ? jsonToZod(data, rootName)
-      : jsonToTypeScript(data, rootName);
+    schemaMode === 'json-schema'
+      ? jsonToJsonSchema(data, rootName)
+      : schemaMode === 'zod'
+        ? jsonToZod(data, rootName)
+        : jsonToTypeScript(data, rootName);
+
+  const editorLanguage = schemaMode === 'json-schema' ? 'json' : 'typescript';
 
   return (
     <div className="flex h-full flex-col">
@@ -52,6 +57,17 @@ export function TypesView({ data }: TypesViewProps) {
           >
             Zod
           </button>
+          <button
+            type="button"
+            onClick={() => setSchemaMode('json-schema')}
+            className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
+              schemaMode === 'json-schema'
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            JSON Schema
+          </button>
         </div>
         <Button
           variant="ghost"
@@ -76,7 +92,7 @@ export function TypesView({ data }: TypesViewProps) {
         ) : (
           <Editor
             loading={<EditorLoading />}
-            language="typescript"
+            language={editorLanguage}
             theme={monacoTheme}
             value={types}
             options={{

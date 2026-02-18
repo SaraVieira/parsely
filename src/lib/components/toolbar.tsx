@@ -2,6 +2,7 @@ import {
   AlignLeft,
   Check,
   ChevronDown,
+  Download,
   Play,
   RotateCcw,
   RotateCw,
@@ -20,12 +21,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useParsleyStore } from '@/lib/stores/parsley-store';
 import { TRANSFORM_PRESETS } from '@/lib/utils/constants';
+import { downloadFile } from '@/lib/utils/download';
+import { jsonToCsv } from '@/lib/utils/json-to-csv';
+import { jsonToYaml } from '@/lib/utils/json-to-yaml';
 import { createShareUrl } from '@/lib/utils/share-url';
 
 export function Toolbar() {
   const {
     jsonInput,
     transformCode,
+    transformedJson,
     editorTab,
     setEditorTab,
     setJsonInput,
@@ -38,6 +43,7 @@ export function Toolbar() {
     setAutoRun,
     viewMode,
     setViewMode,
+    rootName,
   } = useParsleyStore();
 
   const [shareCopied, setShareCopied] = useState(false);
@@ -53,10 +59,10 @@ export function Toolbar() {
     return () => window.removeEventListener('keydown', handler);
   }, [executeTransform]);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     try {
-      const url = createShareUrl(jsonInput, transformCode);
-      navigator.clipboard.writeText(url);
+      const url = await createShareUrl(jsonInput, transformCode, rootName);
+      await navigator.clipboard.writeText(url);
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     } catch {
@@ -177,11 +183,64 @@ export function Toolbar() {
             <Share2 className="size-3.5" />
           )}
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-xs" title="Export data">
+              <Download className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem
+              disabled={transformedJson == null}
+              onClick={() => {
+                if (transformedJson == null) {
+                  return;
+                }
+                downloadFile(
+                  JSON.stringify(transformedJson, null, 2),
+                  'data.json',
+                  'application/json',
+                );
+              }}
+            >
+              JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={transformedJson == null}
+              onClick={() => {
+                if (transformedJson == null) {
+                  return;
+                }
+                downloadFile(
+                  jsonToYaml(transformedJson),
+                  'data.yaml',
+                  'text/yaml',
+                );
+              }}
+            >
+              YAML
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={transformedJson == null}
+              onClick={() => {
+                if (transformedJson == null) {
+                  return;
+                }
+                const csv = jsonToCsv(transformedJson);
+                if (csv) {
+                  downloadFile(csv, 'data.csv', 'text/csv');
+                }
+              }}
+            >
+              CSV
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
         <div className="flex items-center gap-1 border-r border-border/60 pr-2 mr-1">
-          {(['graph', 'tree', 'table', 'types', 'diff'] as const).map(
+          {(['graph', 'tree', 'table', 'chart', 'types', 'diff'] as const).map(
             (mode) => (
               <button
                 type="button"

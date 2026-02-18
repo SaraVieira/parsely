@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn } from '@tanstack/react-start';
 
 export type HeaderEntry = {
   key: string;
@@ -15,45 +15,77 @@ export type FetchRequestParams = {
 const REQUEST_TIMEOUT_MS = 30000;
 const MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10 MB
 const DIGITS_ONLY = /^\d+$/;
+const ALLOWED_METHODS = new Set([
+  'GET',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'HEAD',
+  'OPTIONS',
+]);
+
+const LOOPBACK_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '[::1]',
+  '0.0.0.0',
+]);
+
+const PRIVATE_IPV6_PREFIXES = [
+  'fe80', // link-local
+  'fc', // unique local (fc00::/7)
+  'fd', // unique local (fc00::/7)
+  '::ffff:127.', // IPv4-mapped loopback
+  '::ffff:10.', // IPv4-mapped private
+  '::ffff:192.168.', // IPv4-mapped private
+  '::ffff:169.254.', // IPv4-mapped link-local
+];
+
+function isPrivateIPv6(hostname: string): boolean {
+  if (!(hostname.startsWith('[') || hostname.includes(':'))) {
+    return false;
+  }
+  const bare = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  return PRIVATE_IPV6_PREFIXES.some((prefix) => bare.startsWith(prefix));
+}
+
+function isPrivateIPv4(hostname: string): boolean {
+  const parts = hostname.split('.');
+  if (parts.length !== 4 || !parts.every((p) => DIGITS_ONLY.test(p))) {
+    return false;
+  }
+  const first = Number.parseInt(parts[0], 10);
+  const second = Number.parseInt(parts[1], 10);
+  return (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 169 && second === 254)
+  );
+}
 
 function validateUrl(urlString: string): void {
   let parsed: URL;
   try {
     parsed = new URL(urlString);
   } catch {
-    throw new Error("Invalid URL format.");
+    throw new Error('Invalid URL format.');
   }
 
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("Only HTTP and HTTPS URLs are supported.");
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Only HTTP and HTTPS URLs are supported.');
   }
 
   const hostname = parsed.hostname.toLowerCase();
 
-  if (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "::1" ||
-    hostname === "0.0.0.0"
-  ) {
-    throw new Error("Requests to localhost are not allowed.");
+  if (LOOPBACK_HOSTS.has(hostname)) {
+    throw new Error('Requests to localhost are not allowed.');
   }
 
-  // Block private IP ranges
-  const parts = hostname.split(".");
-  if (parts.length === 4 && parts.every((p) => DIGITS_ONLY.test(p))) {
-    const first = Number.parseInt(parts[0], 10);
-    const second = Number.parseInt(parts[1], 10);
-    if (
-      first === 10 ||
-      (first === 172 && second >= 16 && second <= 31) ||
-      (first === 192 && second === 168) ||
-      first === 169 // link-local (169.254.x.x AWS metadata)
-    ) {
-      throw new Error(
-        "Requests to private/internal addresses are not allowed.",
-      );
-    }
+  if (isPrivateIPv6(hostname) || isPrivateIPv4(hostname)) {
+    throw new Error('Requests to private/internal addresses are not allowed.');
   }
 }
 
@@ -66,24 +98,24 @@ function buildHeaders(entries: Array<HeaderEntry>): Record<string, string> {
     }
   }
   if (!(headers.Accept || headers.accept)) {
-    headers.Accept = "application/json";
+    headers.Accept = 'application/json';
   }
   return headers;
 }
 
 async function parseResponse(response: Response) {
-  const contentLength = response.headers.get("content-length");
+  const contentLength = response.headers.get('content-length');
   if (contentLength && Number.parseInt(contentLength, 10) > MAX_RESPONSE_SIZE) {
     throw new Error(
       `Response too large (${Math.round(Number.parseInt(contentLength, 10) / 1024 / 1024)}MB). Max is 10MB.`,
     );
   }
 
-  const contentType = response.headers.get("content-type") || "";
+  const contentType = response.headers.get('content-type') || '';
   const text = await response.text();
 
   if (text.length > MAX_RESPONSE_SIZE) {
-    throw new Error("Response too large. Max is 10MB.");
+    throw new Error('Response too large. Max is 10MB.');
   }
 
   let json: object;
@@ -103,8 +135,37 @@ async function parseResponse(response: Response) {
   };
 }
 
-export const fetchFromUrl = createServerFn({ method: "POST" })
-  .inputValidator((d: FetchRequestParams) => d)
+export const fetchFromUrl = createServerFn({ method: 'POST' })
+  .inputValidator((d: unknown) => {
+    const input = d as Record<string, unknown>;
+    if (!input || typeof input !== 'object') {
+      throw new Error('Invalid request body.');
+    }
+    if (typeof input.url !== 'string' || !input.url) {
+      throw new Error('URL is required and must be a string.');
+    }
+    const method =
+      typeof input.method === 'string' ? input.method.toUpperCase() : 'GET';
+    if (!ALLOWED_METHODS.has(method)) {
+      throw new Error(`Invalid HTTP method: ${input.method}`);
+    }
+    const headers = Array.isArray(input.headers) ? input.headers : [];
+    for (const h of headers) {
+      if (
+        typeof h !== 'object' ||
+        h === null ||
+        typeof (h as HeaderEntry).key !== 'string'
+      ) {
+        throw new Error('Each header must have a string key and value.');
+      }
+    }
+    return {
+      url: input.url,
+      method,
+      headers: headers as Array<HeaderEntry>,
+      body: typeof input.body === 'string' ? input.body : '',
+    } satisfies FetchRequestParams;
+  })
   .handler(async ({ data }) => {
     validateUrl(data.url);
 
@@ -114,15 +175,15 @@ export const fetchFromUrl = createServerFn({ method: "POST" })
 
     try {
       const response = await fetch(data.url, {
-        method: data.method || "GET",
+        method: data.method || 'GET',
         headers,
-        body: data.body && data.method !== "GET" ? data.body : undefined,
+        body: data.body && data.method !== 'GET' ? data.body : undefined,
         signal: controller.signal,
       });
 
       return await parseResponse(response);
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
+      if (err instanceof DOMException && err.name === 'AbortError') {
         throw new Error(
           `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`,
         );
@@ -145,7 +206,7 @@ type CurlState = {
 };
 
 function parseHeader(headerStr: string): HeaderEntry | null {
-  const colonIdx = headerStr.indexOf(":");
+  const colonIdx = headerStr.indexOf(':');
   if (colonIdx <= 0) {
     return null;
   }
@@ -155,16 +216,16 @@ function parseHeader(headerStr: string): HeaderEntry | null {
   };
 }
 
-const METHOD_FLAGS = new Set(["-X", "--request"]);
-const HEADER_FLAGS = new Set(["-H", "--header"]);
-const BODY_FLAGS = new Set(["-d", "--data", "--data-raw"]);
+const METHOD_FLAGS = new Set(['-X', '--request']);
+const HEADER_FLAGS = new Set(['-H', '--header']);
+const BODY_FLAGS = new Set(['-d', '--data', '--data-raw']);
 
 function isUrl(token: string): boolean {
-  return token.startsWith("http://") || token.startsWith("https://");
+  return token.startsWith('http://') || token.startsWith('https://');
 }
 
 function isFlag(token: string): boolean {
-  return token.startsWith("-") && !isUrl(token);
+  return token.startsWith('-') && !isUrl(token);
 }
 
 function processToken(
@@ -173,10 +234,10 @@ function processToken(
   state: CurlState,
 ): number {
   const token = tokens[i];
-  const nextToken = tokens[i + 1] || "";
+  const nextToken = tokens[i + 1] || '';
 
   if (METHOD_FLAGS.has(token)) {
-    state.method = nextToken.toUpperCase() || "GET";
+    state.method = nextToken.toUpperCase() || 'GET';
     return i + 2;
   }
 
@@ -208,18 +269,18 @@ function processToken(
 
 export function parseCurlCommand(input: string): FetchRequestParams | null {
   const trimmed = input.trim();
-  if (!trimmed.startsWith("curl")) {
+  if (!trimmed.startsWith('curl')) {
     return null;
   }
 
-  const normalized = trimmed.replace(/\\\s*\n\s*/g, " ");
+  const normalized = trimmed.replace(/\\\s*\n\s*/g, ' ');
   const tokens = tokenize(normalized);
 
   if (tokens.length < 2) {
     return null;
   }
 
-  const state: CurlState = { url: "", method: "", headers: [], body: "" };
+  const state: CurlState = { url: '', method: '', headers: [], body: '' };
 
   let i = 1; // skip "curl"
   while (i < tokens.length) {
@@ -231,7 +292,7 @@ export function parseCurlCommand(input: string): FetchRequestParams | null {
   }
 
   if (!state.method) {
-    state.method = state.body ? "POST" : "GET";
+    state.method = state.body ? 'POST' : 'GET';
   }
 
   return state;
@@ -239,7 +300,7 @@ export function parseCurlCommand(input: string): FetchRequestParams | null {
 
 function tokenize(input: string): Array<string> {
   const tokens: Array<string> = [];
-  let current = "";
+  let current = '';
   let inSingle = false;
   let inDouble = false;
 
@@ -250,10 +311,10 @@ function tokenize(input: string): Array<string> {
       inSingle = !inSingle;
     } else if (ch === '"' && !inSingle) {
       inDouble = !inDouble;
-    } else if (ch === " " && !inSingle && !inDouble) {
+    } else if (ch === ' ' && !inSingle && !inDouble) {
       if (current) {
         tokens.push(current);
-        current = "";
+        current = '';
       }
     } else {
       current += ch;

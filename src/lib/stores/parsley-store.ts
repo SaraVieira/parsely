@@ -173,7 +173,7 @@ const SAMPLE_TRANSFORM = `// 'data' is your parsed JSON, '_' is lodash
 
 return _.filter(data.recipes, r => r.stanApproved)`;
 
-type ViewMode = 'graph' | 'tree' | 'types' | 'diff' | 'table';
+type ViewMode = 'graph' | 'tree' | 'types' | 'diff' | 'table' | 'chart';
 
 type HistoryEntry = {
   transformedJson: unknown;
@@ -224,7 +224,7 @@ const MAX_HISTORY = 50;
 const initialParsedJson = JSON.parse(SAMPLE_JSON);
 
 // Pre-seed localStorage from share URL before store initialization
-hydrateFromShareUrl();
+await hydrateFromShareUrl();
 
 export const useParsleyStore = create<ParsleyStore>()(
   persist(

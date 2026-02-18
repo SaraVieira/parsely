@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 import { JsonTreeView } from '@/lib/components/json-tree-view';
 import { useParsleyStore } from '@/lib/stores/parsley-store';
 
+import { ChartView } from './chart-view';
 import { DiffView } from './diff-view';
 import { GraphView } from './graph-view';
 import { TableView } from './table-view';
@@ -24,6 +25,7 @@ export function OutputPane() {
         {viewMode === 'tree' && <JsonTreeView data={transformedJson} />}
         {viewMode === 'types' && <TypesView data={transformedJson} />}
         {viewMode === 'table' && <TableView data={transformedJson} />}
+        {viewMode === 'chart' && <ChartView data={transformedJson} />}
         {viewMode === 'diff' && <DiffView />}
       </div>
     </div>
